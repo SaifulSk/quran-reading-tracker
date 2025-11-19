@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Chapter, Reader, Assignment, supabase } from '../lib/supabase';
 import { Check, Clock, Circle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type ChapterGridProps = {
   chapters: Chapter[];
