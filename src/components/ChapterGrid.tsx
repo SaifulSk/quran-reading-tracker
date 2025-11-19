@@ -143,9 +143,6 @@ export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange
                   borderColor: getReaderColor(assignment.reader_id),
                 } : undefined}
                 onClick={() => {
-                  if(readers?.length == 0) {
-                    toast.error("Please add atleast one reader")
-                  }
                   if (!assignment) {
                     setOpenDropdown(isDropdownOpen ? null : chapter.id);
                   }
@@ -162,21 +159,15 @@ export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange
                       {getReaderName(assignment.reader_id)}
                     </p>
                     <div className="flex gap-1">
-                      {assignment.status!="completed"?<button
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleUpdateStatus(assignment.id, assignment.status);
                         }}
-                        className={"flex-1 text-xs px-2 py-1 "+("bg-[#00FF00]")+" border border-gray-300 rounded hover:bg-gray-50"}
-                      >
-                        {assignment.status=="pending"?"Pending":"In Progress"}
-                      </button>
-                      :
-                      <button
                         className="flex-1 text-xs px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50"
                       >
-                        Done
-                      </button>}
+                        Next
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
