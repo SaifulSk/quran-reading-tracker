@@ -143,6 +143,9 @@ export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange
                   borderColor: getReaderColor(assignment.reader_id),
                 } : undefined}
                 onClick={() => {
+                  if(readers?.length == 0) {
+                    toast.error("Please add atleast one reader")
+                  }
                   if (!assignment) {
                     setOpenDropdown(isDropdownOpen ? null : chapter.id);
                   }
