@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, LogOut } from 'lucide-react';
 import { supabase, Reader, Chapter, Assignment } from './lib/supabase';
+import { useAuth } from './hooks/useAuth';
+import { Login } from './components/Login';
 import { ReaderManagement } from './components/ReaderManagement';
 import { ChapterGrid } from './components/ChapterGrid';
 import { ProgressSummary } from './components/ProgressSummary';
 
 function App() {
+  const { user, loading: authLoading, error: authError, signUp, signIn, signOut, setError: setAuthError } = useAuth();
   const [readers, setReaders] = useState<Reader[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -30,8 +34,45 @@ function App() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading]);
+
+  const handleSignUp = async (email: string, password: string, name: string) => {
+    setAuthSubmitting(true);
+    const result = await signUp(email, password, name);
+    setAuthSubmitting(false);
+    if (result) {
+      setAuthError(null);
+    }
+  };
+
+  const handleSignIn = async (email: string, password: string) => {
+    setAuthSubmitting(true);
+    const result = await signIn(email, password);
+    setAuthSubmitting(false);
+    if (result) {
+      setAuthError(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  if (!user) {
+    return (
+      <Login
+        onSignUp={handleSignUp}
+        onSignIn={handleSignIn}
+        error={authError}
+        loading={authSubmitting}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -47,14 +88,26 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
       <div className="container mx-auto px-4 py-8">
-        <header className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <BookOpen size={32} className="text-emerald-600" />
-            <h1 className="text-3xl font-bold text-gray-800">Qur'an Reading Tracker</h1>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <BookOpen size={32} className="text-emerald-600" />
+              <h1 className="text-3xl font-bold text-gray-800">Qur'an Reading Tracker</h1>
+            </div>
+            <p className="text-gray-600">
+              Manage chapter distribution and track reading progress across 30 Juz
+            </p>
           </div>
-          <p className="text-gray-600">
-            Manage chapter distribution and track reading progress across 30 Juz
-          </p>
+          <div className="flex flex-col items-end gap-2">
+            <p className="text-sm text-gray-600">{user.email}</p>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
