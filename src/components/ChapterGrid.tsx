@@ -7,11 +7,10 @@ type ChapterGridProps = {
   chapters: Chapter[];
   assignments: Assignment[];
   readers: Reader[];
-  organizationId: string | null;
   onAssignmentChange: () => void;
 };
 
-export function ChapterGrid({ chapters, assignments, readers, organizationId, onAssignmentChange }: ChapterGridProps) {
+export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange }: ChapterGridProps) {
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
   const getAssignmentForChapter = (chapterId: number) => {
@@ -27,16 +26,13 @@ export function ChapterGrid({ chapters, assignments, readers, organizationId, on
   };
 
   const handleAssignChapter = async (chapterId: number, readerId: string) => {
-    if (!organizationId) return;
-
     try {
       const { error } = await supabase
         .from('assignments')
         .insert([{
           chapter_id: chapterId,
           reader_id: readerId,
-          status: 'pending',
-          organization_id: organizationId
+          status: 'pending'
         }]);
 
       if (error) throw error;

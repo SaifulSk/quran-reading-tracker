@@ -4,14 +4,13 @@ import { supabase, Reader } from '../lib/supabase';
 
 type ReaderManagementProps = {
   readers: Reader[];
-  organizationId: string | null;
   onReaderAdded: () => void;
   onReaderRemoved: () => void;
 };
 
 const READER_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#A8D5BA'];
 
-export function ReaderManagement({ readers, organizationId, onReaderAdded, onReaderRemoved }: ReaderManagementProps) {
+export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved }: ReaderManagementProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,14 +23,14 @@ export function ReaderManagement({ readers, organizationId, onReaderAdded, onRea
 
   const handleAddReader = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !organizationId) return;
+    if (!name.trim()) return;
 
     setLoading(true);
     try {
       const selectedColor = color || nextColor;
       const { error } = await supabase
         .from('readers')
-        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor, organization_id: organizationId }]);
+        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor }]);
 
       if (error) throw error;
 
