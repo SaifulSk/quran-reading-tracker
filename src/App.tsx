@@ -9,18 +9,39 @@ import { ProgressSummary } from './components/ProgressSummary';
 
 function App() {
   const { user, loading: authLoading, error: authError, signUp, signIn, signOut, setError: setAuthError } = useAuth();
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [readers, setReaders] = useState<Reader[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetchOrganization = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching organization:', error);
+        return null;
+      }
+
+      return data?.organization_id || null;
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      return null;
+    }
+  };
+
+  const fetchData = async (orgId: string) => {
     try {
       const [readersResult, chaptersResult, assignmentsResult] = await Promise.all([
-        supabase.from('readers').select('*').order('name'),
+        supabase.from('readers').select('*').eq('organization_id', orgId).order('name'),
         supabase.from('chapters').select('*').order('id'),
-        supabase.from('assignments').select('*').order('chapter_id')
+        supabase.from('assignments').select('*').eq('organization_id', orgId).order('chapter_id')
       ]);
 
       if (readersResult.data) setReaders(readersResult.data);
@@ -35,7 +56,15 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      (async () => {
+        const orgId = await fetchOrganization(user.id);
+        setOrganizationId(orgId);
+        if (orgId) {
+          await fetchData(orgId);
+        } else {
+          setLoading(false);
+        }
+      })();
     } else if (!authLoading) {
       setLoading(false);
     }
@@ -114,8 +143,9 @@ function App() {
           <div className="lg:col-span-1">
             <ReaderManagement
               readers={readers}
-              onReaderAdded={fetchData}
-              onReaderRemoved={fetchData}
+              organizationId={organizationId}
+              onReaderAdded={() => organizationId && fetchData(organizationId)}
+              onReaderRemoved={() => organizationId && fetchData(organizationId)}
             />
           </div>
           <div className="lg:col-span-2">
@@ -127,7 +157,8 @@ function App() {
           chapters={chapters}
           assignments={assignments}
           readers={readers}
-          onAssignmentChange={fetchData}
+          organizationId={organizationId}
+          onAssignmentChange={() => organizationId && fetchData(organizationId)}
         />
       </div>
     </div>

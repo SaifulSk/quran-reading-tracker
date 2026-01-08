@@ -44,6 +44,26 @@ export function useAuth() {
         return null;
       }
 
+      if (data.user) {
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .insert([{ name: `${name}'s Organization`, created_by: data.user.id }])
+          .select()
+          .maybeSingle();
+
+        if (!orgError && org) {
+          const { error: memberError } = await supabase
+            .from('organization_members')
+            .insert([{ organization_id: org.id, user_id: data.user.id, role: 'admin' }]);
+
+          if (memberError) {
+            console.error('Error adding user to organization:', memberError);
+          }
+        } else if (orgError) {
+          console.error('Error creating organization:', orgError);
+        }
+      }
+
       return data.user;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Signup failed';
