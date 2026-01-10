@@ -27,12 +27,16 @@ export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange
 
   const handleAssignChapter = async (chapterId: number, readerId: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('assignments')
         .insert([{
           chapter_id: chapterId,
           reader_id: readerId,
-          status: 'pending'
+          status: 'pending',
+          user_id: user.id
         }]);
 
       if (error) throw error;

@@ -11,6 +11,7 @@ export type Reader = {
   email: string | null;
   color: string;
   created_at: string;
+  user_id?: string;
 };
 
 export type Chapter = {
@@ -27,6 +28,7 @@ export type Assignment = {
   assigned_at: string;
   completed_at: string | null;
   notes: string | null;
+  user_id?: string;
 };
 
 export type AssignmentWithDetails = Assignment & {

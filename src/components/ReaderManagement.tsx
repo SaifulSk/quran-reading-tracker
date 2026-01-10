@@ -27,10 +27,13 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved }: Re
 
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const selectedColor = color || nextColor;
       const { error } = await supabase
         .from('readers')
-        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor }]);
+        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor, user_id: user.id }]);
 
       if (error) throw error;
 
