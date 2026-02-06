@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { UserPlus, X, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { UserPlus, X, Trash2, AlertCircle } from 'lucide-react';
 import { supabase, Reader } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 type ReaderManagementProps = {
   readers: Reader[];
@@ -17,6 +18,7 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, even
   const [email, setEmail] = useState('');
   const [color, setColor] = useState('');
   const [loading, setLoading] = useState(false);
+  const [readerAssignmentCounts, setReaderAssignmentCounts] = useState<Record<string, number>>({});
 
   const usedColors = new Set(readers.map(r => r.color));
   const availableColors = READER_COLORS.filter(c => !usedColors.has(c));
@@ -45,13 +47,42 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, even
       onReaderAdded();
     } catch (error) {
       console.error('Error adding reader:', error);
+      toast.error('Failed to add reader');
     } finally {
       setLoading(false);
     }
   };
 
+  const loadAssignmentCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .select('reader_id')
+        .eq('event_id', eventId);
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      if (data) {
+        data.forEach(assignment => {
+          counts[assignment.reader_id] = (counts[assignment.reader_id] || 0) + 1;
+        });
+      }
+      setReaderAssignmentCounts(counts);
+    } catch (error) {
+      console.error('Error loading assignment counts:', error);
+    }
+  };
+
   const handleRemoveReader = async (readerId: string) => {
-    if (!confirm('Are you sure you want to remove this reader? All their assignments will be deleted.')) {
+    const assignmentCount = readerAssignmentCounts[readerId] || 0;
+
+    if (assignmentCount > 0) {
+      toast.error(`Cannot delete reader with ${assignmentCount} assigned Juz(s)`);
+      return;
+    }
+
+    if (!confirm('Are you sure you want to remove this reader?')) {
       return;
     }
 
@@ -65,11 +96,19 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, even
       onReaderRemoved();
     } catch (error) {
       console.error('Error removing reader:', error);
+      toast.error('Failed to remove reader');
     }
   };
 
   const handleRemoveAllReaders = async () => {
-    if (!confirm('Are you sure you want to remove all readers? All their assignments will be deleted. This cannot be undone.')) {
+    const readersWithAssignments = readers.filter(r => (readerAssignmentCounts[r.id] || 0) > 0);
+
+    if (readersWithAssignments.length > 0) {
+      toast.error(`Cannot delete readers with assignments. Clear all assignments first.`);
+      return;
+    }
+
+    if (!confirm('Are you sure you want to remove all readers?')) {
       return;
     }
 
@@ -83,8 +122,13 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, even
       onReaderRemoved();
     } catch (error) {
       console.error('Error removing all readers:', error);
+      toast.error('Failed to remove readers');
     }
   };
+
+  useEffect(() => {
+    loadAssignmentCounts();
+  }, [eventId]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -177,29 +221,46 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, even
         {readers.length === 0 ? (
           <p className="text-gray-500 text-center py-4">No readers added yet</p>
         ) : (
-          readers.map((reader) => (
-            <div
-              key={reader.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-5 h-5 rounded-full border-2 border-gray-300"
-                  style={{ backgroundColor: reader.color }}
-                />
-                <div>
-                  <p className="font-medium text-gray-800">{reader.name}</p>
-                  {reader.email && <p className="text-sm text-gray-500">{reader.email}</p>}
-                </div>
-              </div>
-              <button
-                onClick={() => handleRemoveReader(reader.id)}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          readers.map((reader) => {
+            const assignmentCount = readerAssignmentCounts[reader.id] || 0;
+            const hasAssignments = assignmentCount > 0;
+
+            return (
+              <div
+                key={reader.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <X size={18} />
-              </button>
-            </div>
-          ))
+                <div className="flex items-center gap-3 flex-1">
+                  <div
+                    className="w-5 h-5 rounded-full border-2 border-gray-300"
+                    style={{ backgroundColor: reader.color }}
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{reader.name}</p>
+                    {reader.email && <p className="text-sm text-gray-500">{reader.email}</p>}
+                  </div>
+                  {hasAssignments && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 rounded text-sm text-amber-800">
+                      <AlertCircle size={14} />
+                      {assignmentCount} Juz
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleRemoveReader(reader.id)}
+                  disabled={hasAssignments}
+                  className={`p-2 rounded-md transition-colors ${
+                    hasAssignments
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-red-600 hover:bg-red-50'
+                  }`}
+                  title={hasAssignments ? 'Remove assignments first' : 'Delete reader'}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
