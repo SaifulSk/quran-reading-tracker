@@ -5,6 +5,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export type Event = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+};
+
 export type Reader = {
   id: string;
   name: string;
@@ -12,6 +20,7 @@ export type Reader = {
   color: string;
   created_at: string;
   user_id?: string;
+  event_id?: string;
 };
 
 export type Chapter = {
@@ -29,6 +38,7 @@ export type Assignment = {
   completed_at: string | null;
   notes: string | null;
   user_id?: string;
+  event_id?: string;
 };
 
 export type AssignmentWithDetails = Assignment & {

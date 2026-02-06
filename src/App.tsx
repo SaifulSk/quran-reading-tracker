@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, LogOut } from 'lucide-react';
+import { BookOpen, LogOut, ArrowLeft } from 'lucide-react';
 import { supabase, Reader, Chapter, Assignment } from './lib/supabase';
 import { useAuth } from './hooks/useAuth';
 import { Login } from './components/Login';
+import { EventsList } from './components/EventsList';
 import { ReaderManagement } from './components/ReaderManagement';
 import { ChapterGrid } from './components/ChapterGrid';
 import { ProgressSummary } from './components/ProgressSummary';
 
 function App() {
   const { user, loading: authLoading, error: authError, signUp, signIn, signOut, setError: setAuthError } = useAuth();
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [readers, setReaders] = useState<Reader[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (eventId: string) => {
     try {
       const [readersResult, chaptersResult, assignmentsResult] = await Promise.all([
-        supabase.from('readers').select('*').order('name'),
+        supabase.from('readers').select('*').eq('event_id', eventId).order('name'),
         supabase.from('chapters').select('*').order('id'),
-        supabase.from('assignments').select('*').order('chapter_id')
+        supabase.from('assignments').select('*').eq('event_id', eventId).order('chapter_id')
       ]);
 
       if (readersResult.data) setReaders(readersResult.data);
@@ -34,12 +36,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchData();
-    } else if (!authLoading) {
+    if (user && selectedEventId) {
+      fetchData(selectedEventId);
+    } else if (!authLoading && !selectedEventId) {
       setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [user, selectedEventId, authLoading]);
 
   const handleSignUp = async (email: string, password: string, name: string) => {
     setAuthSubmitting(true);
@@ -74,6 +76,10 @@ function App() {
     );
   }
 
+  if (!selectedEventId) {
+    return <EventsList onSelectEvent={setSelectedEventId} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
@@ -89,14 +95,23 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8 flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <BookOpen size={32} className="text-emerald-600" />
-              <h1 className="text-3xl font-bold text-gray-800">Qur'an Reading Tracker</h1>
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => setSelectedEventId(null)}
+              className="mt-1 p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              title="Back to events"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <BookOpen size={32} className="text-emerald-600" />
+                <h1 className="text-3xl font-bold text-gray-800">Qur'an Reading Tracker</h1>
+              </div>
+              <p className="text-gray-600">
+                Manage chapter distribution and track reading progress across 30 Juz
+              </p>
             </div>
-            <p className="text-gray-600">
-              Manage chapter distribution and track reading progress across 30 Juz
-            </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <p className="text-sm text-gray-600">{user.email}</p>
@@ -114,8 +129,9 @@ function App() {
           <div className="lg:col-span-1">
             <ReaderManagement
               readers={readers}
-              onReaderAdded={fetchData}
-              onReaderRemoved={fetchData}
+              onReaderAdded={() => fetchData(selectedEventId)}
+              onReaderRemoved={() => fetchData(selectedEventId)}
+              eventId={selectedEventId}
             />
           </div>
           <div className="lg:col-span-2">
@@ -127,7 +143,8 @@ function App() {
           chapters={chapters}
           assignments={assignments}
           readers={readers}
-          onAssignmentChange={fetchData}
+          onAssignmentChange={() => fetchData(selectedEventId)}
+          eventId={selectedEventId}
         />
       </div>
     </div>

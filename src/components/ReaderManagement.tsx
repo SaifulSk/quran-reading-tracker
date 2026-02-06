@@ -6,11 +6,12 @@ type ReaderManagementProps = {
   readers: Reader[];
   onReaderAdded: () => void;
   onReaderRemoved: () => void;
+  eventId: string;
 };
 
 const READER_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B88B', '#A8D5BA'];
 
-export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved }: ReaderManagementProps) {
+export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved, eventId }: ReaderManagementProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ export function ReaderManagement({ readers, onReaderAdded, onReaderRemoved }: Re
       const selectedColor = color || nextColor;
       const { error } = await supabase
         .from('readers')
-        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor, user_id: user.id }]);
+        .insert([{ name: name.trim(), email: email.trim() || null, color: selectedColor, user_id: user.id, event_id: eventId }]);
 
       if (error) throw error;
 

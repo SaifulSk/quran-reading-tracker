@@ -8,9 +8,10 @@ type ChapterGridProps = {
   assignments: Assignment[];
   readers: Reader[];
   onAssignmentChange: () => void;
+  eventId: string;
 };
 
-export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange }: ChapterGridProps) {
+export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange, eventId }: ChapterGridProps) {
   const [openDropdown, setOpenDropdown] = useState<number | null>(null);
 
   const getAssignmentForChapter = (chapterId: number) => {
@@ -36,7 +37,8 @@ export function ChapterGrid({ chapters, assignments, readers, onAssignmentChange
           chapter_id: chapterId,
           reader_id: readerId,
           status: 'pending',
-          user_id: user.id
+          user_id: user.id,
+          event_id: eventId
         }]);
 
       if (error) throw error;
